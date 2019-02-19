@@ -16,12 +16,7 @@ at::Tensor integral_image(at::Tensor input) {
     ++outputSize[input.dim() - 1];
 
     auto output = at::empty(outputSize, input.options());
-
-    if (input.is_cuda()) {
-        gpu::integral_image(input, output);
-    } else {
-        cpu::integral_image(input, output);
-    }
+    cpu::integral_image(input, output);
 
     return output;
 }

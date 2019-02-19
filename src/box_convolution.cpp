@@ -97,14 +97,13 @@ void splitParametersAccGradParameters(
     }));
 }
 
-template <bool normalize, bool exact>
-void boxConvUpdateOutput(
+template <bool normalize, bool exact> void boxConvUpdateOutput(
     at::Tensor & xMinInt , at::Tensor & xMaxInt , at::Tensor & yMinInt , at::Tensor & yMaxInt ,
     at::Tensor & xMinFrac, at::Tensor & xMaxFrac, at::Tensor & yMinFrac, at::Tensor & yMaxFrac,
     at::Tensor & area, at::Tensor & input_integrated, at::Tensor & output) {
 
-    const int h = output.size(-2);
-    const int w = output.size(-1);
+    int h = output.size(-2);
+    int w = output.size(-1);
 
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(output.type(), "cpu::boxConvUpdateOutput", ([&] {
 
@@ -290,8 +289,8 @@ void boxConvUpdateGradInput(
     at::Tensor & xMinFrac, at::Tensor & xMaxFrac, at::Tensor & yMinFrac, at::Tensor & yMaxFrac,
     at::Tensor & area, at::Tensor & grad_output_integrated, at::Tensor & tmpArray) {
 
-    const int h = tmpArray.size(-2);
-    const int w = tmpArray.size(-1);
+    int h = tmpArray.size(-2);
+    int w = tmpArray.size(-1);
 
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(tmpArray.type(), "cpu::boxConvUpdateGradInput", ([&] {
 
@@ -484,8 +483,8 @@ void boxConvAccGradParameters(
     at::Tensor & xMinFrac, at::Tensor & xMaxFrac, at::Tensor & yMinFrac, at::Tensor & yMaxFrac,
     at::Tensor & input_integrated, at::Tensor & tmpArray, Parameter parameter) {
 
-    const int h = tmpArray.size(-2);
-    const int w = tmpArray.size(-1);
+    int h = tmpArray.size(-2);
+    int w = tmpArray.size(-1);
 
     AT_DISPATCH_FLOATING_TYPES_AND_HALF(tmpArray.type(), "cpu::boxConvAccGradParameters", ([&] {
         

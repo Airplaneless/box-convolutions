@@ -52,24 +52,13 @@ at::Tensor box_convolution_forward(
     // inverse box areas for normalization
     at::Tensor area;
 
-    if (x_min.is_cuda()) {
-        gpu::splitParameters(
-            x_min   , x_max   , y_min   , y_max   ,
-            xMinInt , xMaxInt , yMinInt , yMaxInt ,
-            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
+    cpu::splitParameters(
+        x_min   , x_max   , y_min   , y_max   ,
+        xMinInt , xMaxInt , yMinInt , yMaxInt ,
+        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
 
-        if (normalize) {
-            area = gpu::computeArea(x_min, x_max, y_min, y_max, exact);
-        }
-    } else {
-        cpu::splitParameters(
-            x_min   , x_max   , y_min   , y_max   ,
-            xMinInt , xMaxInt , yMinInt , yMaxInt ,
-            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
-
-        if (normalize) {
-            area = cpu::computeArea(x_min, x_max, y_min, y_max, exact);
-        }
+    if (normalize) {
+        area = cpu::computeArea(x_min, x_max, y_min, y_max, exact);
     }
 
     const int batchSize = input_integrated.size(0);
@@ -83,59 +72,29 @@ at::Tensor box_convolution_forward(
         {batchSize, nInputPlanes, numFilters, h, w}, input_integrated.options());
     CHECK_CONTIGUOUS(output);
 
-    // Actually fill `output`
-    if (input_integrated.is_cuda()) {
-        // TODO what is the common practice of avoiding such `if`s? 
-        if (normalize) {
-            if (exact) {
-                gpu::boxConvUpdateOutput<true, true>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            } else {
-                gpu::boxConvUpdateOutput<true, false>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            }
+    if (normalize) {
+        if (exact) {
+            cpu::boxConvUpdateOutput<true, true>(
+                xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                area, input_integrated, output);
         } else {
-            if (exact) {
-                gpu::boxConvUpdateOutput<false, true>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            } else {
-                gpu::boxConvUpdateOutput<false, false>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            }
+            cpu::boxConvUpdateOutput<true, false>(
+                xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                area, input_integrated, output);
         }
     } else {
-        if (normalize) {
-            if (exact) {
-                cpu::boxConvUpdateOutput<true, true>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            } else {
-                cpu::boxConvUpdateOutput<true, false>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            }
+        if (exact) {
+            cpu::boxConvUpdateOutput<false, true>(
+                xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                area, input_integrated, output);
         } else {
-            if (exact) {
-                cpu::boxConvUpdateOutput<false, true>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            } else {
-                cpu::boxConvUpdateOutput<false, false>(
-                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                    area, input_integrated, output);
-            }
+            cpu::boxConvUpdateOutput<false, false>(
+                xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                area, input_integrated, output);
         }
     }
 
@@ -208,71 +167,36 @@ std::vector<at::Tensor> box_convolution_backward(
 
         at::Tensor area; // box area for normalization
 
-        if (grad_output_integrated.is_cuda()) {
-            gpu::splitParametersUpdateGradInput(
-                x_min,    x_max,    y_min,    y_max,
-                xMinInt,  xMaxInt,  yMinInt,  yMaxInt,
-                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
+        cpu::splitParametersUpdateGradInput(
+            x_min,    x_max,    y_min,    y_max,
+            xMinInt, xMaxInt, yMinInt, yMaxInt,
+            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
 
-            if (normalize) {
-                area = gpu::computeArea(x_min, x_max, y_min, y_max, exact);
+        if (normalize) {
+            area = cpu::computeArea(x_min, x_max, y_min, y_max, exact);
 
-                if (exact) {
-                    gpu::boxConvUpdateGradInput<true, true>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                } else {
-                    gpu::boxConvUpdateGradInput<true, false>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                }
+            if (exact) {
+                cpu::boxConvUpdateGradInput<true, true>(
+                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                    area, grad_output_integrated, tmpArray);
             } else {
-                if (exact) {
-                    gpu::boxConvUpdateGradInput<false, true>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                } else {
-                    gpu::boxConvUpdateGradInput<false, false>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                }
+                cpu::boxConvUpdateGradInput<true, false>(
+                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                    area, grad_output_integrated, tmpArray);
             }
         } else {
-            cpu::splitParametersUpdateGradInput(
-                x_min,    x_max,    y_min,    y_max,
-                xMinInt, xMaxInt, yMinInt, yMaxInt,
-                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
-
-            if (normalize) {
-                area = cpu::computeArea(x_min, x_max, y_min, y_max, exact);
-
-                if (exact) {
-                    cpu::boxConvUpdateGradInput<true, true>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                } else {
-                    cpu::boxConvUpdateGradInput<true, false>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                }
+            if (exact) {
+                cpu::boxConvUpdateGradInput<false, true>(
+                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                    area, grad_output_integrated, tmpArray);
             } else {
-                if (exact) {
-                    cpu::boxConvUpdateGradInput<false, true>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                } else {
-                    cpu::boxConvUpdateGradInput<false, false>(
-                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                        area, grad_output_integrated, tmpArray);
-                }
+                cpu::boxConvUpdateGradInput<false, false>(
+                    xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                    xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                    area, grad_output_integrated, tmpArray);
             }
         }
 
@@ -293,54 +217,29 @@ std::vector<at::Tensor> box_convolution_backward(
     if (someParamNeedsGrad) {
         tmpArray = at::empty({batchSize, nInputPlanes, numFilters, h, w}, x_min.options());
 
-        if (x_min.is_cuda()) {
-            gpu::splitParametersAccGradParameters(
-                x_min   , x_max   , y_min   , y_max   ,
-                xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
+        cpu::splitParametersAccGradParameters(
+            x_min   , x_max   , y_min   , y_max   ,
+            xMinInt , xMaxInt , yMinInt , yMaxInt ,
+            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
 
-            if (normalize) {
-                area = gpu::computeArea(x_min, x_max, y_min, y_max, exact);
-            }
-        } else {
-            cpu::splitParametersAccGradParameters(
-                x_min   , x_max   , y_min   , y_max   ,
-                xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                xMinFrac, xMaxFrac, yMinFrac, yMaxFrac);
-
-            if (normalize) {
-                area = cpu::computeArea(x_min, x_max, y_min, y_max, exact);
-            }
+        if (normalize) {
+            area = cpu::computeArea(x_min, x_max, y_min, y_max, exact);
         }
 
         for (int paramIdx = 0; paramIdx < 4; ++paramIdx) {
             if (paramNeedsGrad[paramIdx]) {
                 const Parameter paramId = static_cast<Parameter>(paramIdx);
 
-                if (input_integrated.is_cuda()) {
-                    if (exact) {
-                        gpu::boxConvAccGradParameters<true>(
-                            xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                            input_integrated, tmpArray, paramId);
-                    } else {
-                        gpu::boxConvAccGradParameters<false>(
-                            xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                            input_integrated, tmpArray, paramId);
-                    }
+                if (exact) {
+                    cpu::boxConvAccGradParameters<true>(
+                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                        input_integrated, tmpArray, paramId);
                 } else {
-                    if (exact) {
-                        cpu::boxConvAccGradParameters<true>(
-                            xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                            input_integrated, tmpArray, paramId);
-                    } else {
-                        cpu::boxConvAccGradParameters<false>(
-                            xMinInt , xMaxInt , yMinInt , yMaxInt ,
-                            xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
-                            input_integrated, tmpArray, paramId);
-                    }
+                    cpu::boxConvAccGradParameters<false>(
+                        xMinInt , xMaxInt , yMinInt , yMaxInt ,
+                        xMinFrac, xMaxFrac, yMinFrac, yMaxFrac,
+                        input_integrated, tmpArray, paramId);
                 }
 
                 tmpArray.mul_(grad_output);
@@ -368,13 +267,8 @@ std::vector<at::Tensor> box_convolution_backward(
                     const bool needXDeriv = paramId == Parameter::xMin or paramId == Parameter::xMax;
                     const bool needYDeriv = not needXDeriv;
 
-                    if (x_min.is_cuda()) {
-                        area = gpu::computeArea(
-                            x_min, x_max, y_min, y_max, exact, needXDeriv, needYDeriv);
-                    } else {
-                        area = cpu::computeArea(
-                            x_min, x_max, y_min, y_max, exact, needXDeriv, needYDeriv);
-                    }
+                    area = cpu::computeArea(
+                        x_min, x_max, y_min, y_max, exact, needXDeriv, needYDeriv);
 
                     const bool minus = paramId == Parameter::xMax or paramId == Parameter::yMax;
                     gradParam[paramIdx].addcmul_(tmpArray, area, minus ? -1.0 : 1.0);
@@ -408,11 +302,6 @@ void clip_parameters(
     const float minWidth  = exact ? 1.001f : 2.001f;
     const float minHeight = exact ? 1.001f : 2.001f;
 
-    if (x_min.is_cuda()) {
-        gpu::clipParameters(x_min, x_max, reparametrization_h, minHeight, max_input_h);
-        gpu::clipParameters(y_min, y_max, reparametrization_w, minWidth , max_input_w);
-    } else {
-        cpu::clipParameters(x_min, x_max, reparametrization_h, minHeight, max_input_h);
-        cpu::clipParameters(y_min, y_max, reparametrization_w, minWidth , max_input_w);
-    }
+    cpu::clipParameters(x_min, x_max, reparametrization_h, minHeight, max_input_h);
+    cpu::clipParameters(y_min, y_max, reparametrization_w, minWidth , max_input_w);
 }

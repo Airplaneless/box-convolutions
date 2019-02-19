@@ -43,15 +43,15 @@ source_files_cpp = [
 	'box_convolution.cpp',
 	'bind.cpp'
 ]
-source_files_cuda = [
-    'integral_image_cuda.cu',
-    'box_convolution_cuda_forward.cu',
-    'box_convolution_cuda_backward.cu',
-    'box_convolution_cuda_misc.cu'
-]
-source_files = source_files_cpp + source_files_cuda
+# source_files_cuda = [
+#     'integral_image_cuda.cu',
+#     'box_convolution_cuda_forward.cu',
+#     'box_convolution_cuda_backward.cu',
+#     'box_convolution_cuda_misc.cu'
+# ]
+source_files = source_files_cpp #+ source_files_cuda
 
-cpp_cuda = torch.utils.cpp_extension.CUDAExtension(
+cpp_cuda = torch.utils.cpp_extension.CppExtension(
     name='box_convolution_cpp_cuda',
     sources=[os.path.join(source_root, file) for file in source_files],
     include_dirs=[source_root]

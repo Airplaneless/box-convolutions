@@ -106,7 +106,7 @@ def main():
     # Training settings
     use_cuda = torch.cuda.is_available()
     batch_size = 64
-    n_epochs = 10
+    n_epochs = 2
 
     torch.manual_seed(666)
 
